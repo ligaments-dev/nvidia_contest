@@ -1,0 +1,15 @@
+pymupdf
+streamlit
+python-pptx
+Pillow
+requests
+frontend
+llama-index-core
+llama-index-readers-file
+llama-index-llms-nvidia
+llama-index-embeddings-nvidia
+llama-index-vector-stores-milvus
+pymilvus
+python-pptx
+pinecone
+llama_index.vector_stores.chroma
