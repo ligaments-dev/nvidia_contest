@@ -86,7 +86,7 @@ async def upload_directory(data: DirectoryPathRequest):
 async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
     if 'index' not in globals():
-        await websocket.send_text("Index not available. Please upload files or directory first.")
+        await websocket.send_json({"role":"assistant", "content":"Index not available. Please upload files first."})
         await websocket.close()
         return
 
@@ -95,11 +95,11 @@ async def websocket_chat(websocket: WebSocket):
     
     try:
         while True:
-            data = await websocket.receive_text()
-            history.append({"role": "user", "content": data})
-            response = query_engine.chat(data)
+            data = await websocket.receive_json()
+            history.append(data)
+            response = query_engine.chat(data["content"])
             print(response)
-            await websocket.send_text(str(response))
+            await websocket.send_json({"role": "assistant", "content": str(response)})
             history.append({"role": "assistant", "content": response})
             logger.info(f"User query processed: {data}")
 
