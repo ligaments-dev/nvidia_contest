@@ -12,6 +12,9 @@ from document_processors import load_multimodal_data, load_data_from_directory
 from utils import set_environment_variables
 import logging
 
+from nemoguardrails import LLMRails, RailsConfig
+
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -24,6 +27,9 @@ def initialize_settings():
     Settings.embed_model = NVIDIAEmbedding(model="nvidia/nv-embedqa-e5-v5", truncate="END")
     Settings.llm = NVIDIA(model="meta/llama-3.1-70b-instruct")
     Settings.text_splitter = SentenceSplitter(chunk_size=600)
+    config = RailsConfig.from_path('config')
+    rails = LLMRails(config=config, llm=Settings.llm, embedding_model=Settings.embed_model)
+    rails.generate_async(prompt="<user message>")
     logger.info("Settings initialized.")
 
 # Create index from documents

@@ -13,3 +13,4 @@ pymilvus
 python-pptx
 pinecone
 llama_index.vector_stores.chroma
+nemoguardrails

@@ -3,3 +3,4 @@ test.ipynb
 chroma_db
 __pycache__
 vectorstore/
+env/
