@@ -7,11 +7,14 @@ from utils import (
     describe_image, is_graph, process_graph, extract_text_around_item, 
     process_text_blocks, save_uploaded_file
 )
+import os
+from typing import Union, List
+from io import BufferedReader
 
 def get_pdf_documents(pdf_file):
     """Process a PDF file and extract text, tables, and images."""
     try:
-        f = fitz.open(stream=pdf_file.read(), filetype="pdf")
+        f = fitz.open(stream=pdf_file.file.read(), filetype="pdf")  # Use .file to access the file stream
     except Exception as e:
         print(f"Error opening PDF file: {e}")
         return []
@@ -145,24 +148,45 @@ def extract_text_and_notes_from_ppt(ppt_path):
     prs = Presentation(ppt_path)
     return [( ' '.join([shape.text for shape in slide.shapes if hasattr(shape, "text")]), slide.notes_slide.notes_text_frame.text if slide.notes_slide else '') for slide in prs.slides]
 
-def load_multimodal_data(files):
-    """Load and process multiple file types."""
+def load_multimodal_data(files: Union[List[str], List[BufferedReader]]):
+    """Load and process multiple file types (file paths or file objects)."""
     documents = []
+    
     for file in files:
         try:
-            file_extension = os.path.splitext(file.name.lower())[1]
-            if file_extension in ('.png', '.jpg', '.jpeg'):
-                documents.append(Document(text=describe_image(file.read()), metadata={"source": file.name, "type": "image"}))
-            elif file_extension == '.pdf':
-                documents.extend(get_pdf_documents(file))
-            elif file_extension in ('.ppt', '.pptx'):
-                documents.extend(process_ppt_file(save_uploaded_file(file)))
-            else:
-                documents.append(Document(text=file.read().decode("utf-8"), metadata={"source": file.name, "type": "text"}))
+            # Check if the file is a path (str) or a file object (BufferedReader)
+            if isinstance(file, str):  # File path as string
+                # Open the file by path
+                with open(file, "rb") as f:
+                    file_extension = os.path.splitext(file.lower())[1]
+                    if file_extension in ('.png', '.jpg', '.jpeg'):
+                        documents.append(Document(text=describe_image(f.read()), metadata={"source": file, "type": "image"}))
+                    elif file_extension == '.pdf':
+                        documents.extend(get_pdf_documents(f))
+                    elif file_extension in ('.ppt', '.pptx'):
+                        documents.extend(process_ppt_file(f))
+                    else:
+                        documents.append(Document(text=f.read().decode("utf-8"), metadata={"source": file, "type": "text"}))
+            else:  # File object (e.g., from upload)
+                file_extension = os.path.splitext(file.filename.lower())[1]
+                if file_extension in ('.png', '.jpg', '.jpeg'):
+                    documents.append(Document(text=describe_image(file.file.read()), metadata={"source": file.filename, "type": "image"}))
+                elif file_extension == '.pdf':
+                    documents.extend(get_pdf_documents(file))
+                elif file_extension in ('.ppt', '.pptx'):
+                    documents.extend(process_ppt_file(save_uploaded_file(file)))
+                else:
+                    documents.append(Document(text=file.file.read().decode("utf-8"), metadata={"source": file.filename, "type": "text"}))
         except Exception as e:
-            print(f"Error processing {file.name}: {e}")
+            print(f"Error processing {file}: {e}")
+    
     return documents
 
 def load_data_from_directory(directory):
-    """Load and process files from a directory."""
-    return load_multimodal_data([open(os.path.join(directory, filename), "rb") for filename in os.listdir(directory) if os.path.isfile(os.path.join(directory, filename))])
+    """Load all files from a directory."""
+    documents = []
+    for filename in os.listdir(directory):
+        file_path = os.path.join(directory, filename)
+        with open(file_path, 'rb') as file:
+            documents.extend(load_multimodal_data([file_path]))
+    return documents

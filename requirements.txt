@@ -13,3 +13,4 @@ pymilvus
 python-pptx
 llama_index.vector_stores.chroma
 nemoguardrails
+python-multipart
