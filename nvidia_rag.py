@@ -76,7 +76,7 @@ def main():
             if 'history' not in st.session_state:
                 st.session_state['history'] = []
             
-            query_engine = st.session_state['index'].as_query_engine(similarity_top_k=20, streaming=True)
+            query_engine = st.session_state['index'].as_chat_engine(similarity_top_k=20, streaming=True)
 
             user_input = st.chat_input("Enter your query:")
 
@@ -95,7 +95,7 @@ def main():
                 with st.chat_message("assistant"):
                     message_placeholder = st.empty()
                     full_response = ""
-                    response = query_engine.query(user_input)
+                    response = query_engine.stream_chat(user_input)
                     for token in response.response_gen:
                         full_response += token
                         message_placeholder.markdown(full_response + "▌")
