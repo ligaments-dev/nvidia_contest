@@ -21,6 +21,7 @@ from nemoguardrails import LLMRails, RailsConfig
 from llama_index.core import PromptTemplate
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.chat_engine import CondenseQuestionChatEngine
+from llama_index.core.chat_engine import SimpleChatEngine
 from utils import set_environment_variables
 from config import LLM_CONFIG
 import nest_asyncio
@@ -60,6 +61,7 @@ initialize_settings()
 # Chroma vector store client setup
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
 reranker = NVIDIARerank(model="nvidia/nv-rerankqa-mistral-4b-v3", top_n=4)
+simple_chat_engine = SimpleChatEngine.from_defaults(llm = NVIDIA(model=LLM_CONFIG["llm"]))
 custom_prompt = PromptTemplate(
     """\
     Given a conversation (between Human and Assistant) and a follow up message from Human, \
@@ -134,10 +136,16 @@ async def upload_directory(data: DirectoryPathRequest):
 @app.websocket("/chat")
 async def websocket_chat(websocket: WebSocket):
     await websocket.accept()
-    if 'index' not in globals():
-        await websocket.send_json({"role":"assistant", "content":"Index not available. Please upload files first."})
-        await websocket.close()
-        return
+    while True:
+        if 'index' not in globals():
+            data = await websocket.receive_json()
+            response = simple_chat_engine.chat(data["content"])
+            await websocket.send_json({"role":"assistant", "content":str(response)})
+            continue
+        else:
+            break
+        # await websocket.close()
+        # return
     query_engine = index.as_query_engine(similarity_top_k=20)
     chat_engine = CondenseQuestionChatEngine.from_defaults(
         query_engine=query_engine,
