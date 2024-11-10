@@ -6,6 +6,7 @@ from PIL import Image
 import requests
 from dotenv import find_dotenv, load_dotenv
 from llama_index.llms.nvidia import NVIDIA
+from config import LLM_CONFIG
 
 # Load environment variables from .env file if it exists
 load_dotenv(find_dotenv(raise_error_if_not_found=False))
@@ -29,7 +30,7 @@ def is_graph(image_content):
 def process_graph(image_content):
     """Generate a description of a graph image."""
     deplot_description = process_graph_deplot(image_content)
-    llm = NVIDIA(model_name="meta/llama-3.1-70b-instruct")
+    llm = NVIDIA(model_name=LLM_CONFIG["llm"])
     response = llm.complete(
         "Explain the following linearized table for LLM usage: " + deplot_description
     )
@@ -43,7 +44,7 @@ def describe_image(image_content):
 
     image_b64 = get_b64_image_from_content(image_content)
     response = requests.post(
-        "https://ai.api.nvidia.com/v1/vlm/nvidia/neva-22b",
+        LLM_CONFIG["image_model_api"],
         headers={"Authorization": f"Bearer {api_key}", "Accept": "application/json"},
         json={
             "messages": [
@@ -69,7 +70,7 @@ def process_graph_deplot(image_content):
 
     image_b64 = get_b64_image_from_content(image_content)
     response = requests.post(
-        "https://ai.api.nvidia.com/v1/vlm/google/deplot",
+        LLM_CONFIG["graph_model_api"],
         headers={"Authorization": f"Bearer {api_key}", "Accept": "application/json"},
         json={
             "messages": [

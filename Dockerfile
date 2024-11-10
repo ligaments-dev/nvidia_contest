@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 8697
 
 # Command to run the Streamlit app
-CMD ["streamlit", "run", "nvidia_rag.py", "--server.port=8697"]
+CMD ["uvicorn", "nvidia_rag:app", "--port", "8697"]
