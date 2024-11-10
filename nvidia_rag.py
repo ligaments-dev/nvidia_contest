@@ -5,6 +5,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.background import BackgroundTasks
 from pydantic import BaseModel
+from llama_index.postprocessor.nvidia_rerank import NVIDIARerank
 from llama_index.core import Settings, VectorStoreIndex, StorageContext
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.vector_stores.chroma import ChromaVectorStore
@@ -16,8 +17,11 @@ from llama_index.core.node_parser import (
     SentenceSplitter,
     SemanticSplitterNodeParser,
 )
+from llama_index.core import PromptTemplate
+from llama_index.core.llms import ChatMessage, MessageRole
+from llama_index.core.chat_engine import CondenseQuestionChatEngine
 from utils import set_environment_variables
-
+set_environment_variables()
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,6 +50,37 @@ initialize_settings()
 
 # Chroma vector store client setup
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
+reranker = NVIDIARerank(model="nvidia/nv-rerankqa-mistral-4b-v3", top_n=4)
+custom_prompt = PromptTemplate(
+    """\
+    Given a conversation (between Human and Assistant) and a follow up message from Human, \
+    rewrite the message to be a standalone question that captures all relevant context \
+    from the conversation.
+
+    <Chat History>
+    {chat_history}
+
+    <Follow Up Message>
+    {question}
+
+    <Standalone question>
+    """
+)
+
+custom_chat_history = [
+    ChatMessage(
+        role=MessageRole.SYSTEM,
+        content="You are an insightful assistant with deep expertise in telecommunications, specializing in both technical advancements and practical field support. You provide clear, relevant, and actionable information that benefits field technicians and industry professionals alike."
+    ),
+    ChatMessage(
+        role=MessageRole.USER,
+        content="Hello assistant, we're diving into a deep discussion on the latest advancements in telecommunications today, especially as it relates to fieldwork.",
+    ),
+    ChatMessage(
+        role=MessageRole.ASSISTANT,
+        content="Absolutely! With my extensive background in telecom and practical field support, I'm here to offer detailed insights and actionable advice to help field technicians and industry professionals stay informed and efficient. Let's dive in!"
+    ),
+]
 
 # Helper function to create an index
 def create_index(documents):
@@ -94,14 +129,20 @@ async def websocket_chat(websocket: WebSocket):
         await websocket.send_json({"role":"assistant", "content":"Index not available. Please upload files first."})
         await websocket.close()
         return
-    query_engine = index.as_chat_engine(similarity_top_k=20, streaming=True)
+    query_engine = index.as_query_engine(similarity_top_k=20, node_postprocessors=[reranker])
+    chat_engine = CondenseQuestionChatEngine.from_defaults(
+        query_engine=query_engine,
+        condense_question_prompt=custom_prompt,
+        chat_history=custom_chat_history,
+        verbose=True,
+    )
     history = []
     
     try:
         while True:
             data = await websocket.receive_json()
             history.append(data)
-            response = query_engine.chat(data["content"])
+            response = chat_engine.chat(data["content"])
             print(response)
             await websocket.send_json({"role": "assistant", "content": str(response)})
             history.append({"role": "assistant", "content": response})
