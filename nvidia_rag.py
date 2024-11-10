@@ -12,6 +12,10 @@ import chromadb
 from llama_index.embeddings.nvidia import NVIDIAEmbedding
 from llama_index.llms.nvidia import NVIDIA
 from document_processors import load_multimodal_data, load_data_from_directory
+from llama_index.core.node_parser import (
+    SentenceSplitter,
+    SemanticSplitterNodeParser,
+)
 from utils import set_environment_variables
 
 # Set up logging
@@ -35,6 +39,7 @@ def initialize_settings():
     Settings.embed_model = NVIDIAEmbedding(model="nvidia/nv-embedqa-e5-v5", truncate="END")
     Settings.llm = NVIDIA(model="meta/llama-3.1-70b-instruct")
     Settings.text_splitter = SentenceSplitter(chunk_size=600)
+    Settings.node_parser = SemanticSplitterNodeParser(buffer_size=1, embed_model=Settings.embed_model)
     logger.info("Settings initialized.")
 
 initialize_settings()
@@ -54,7 +59,7 @@ def create_index(documents):
     
     vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
     storage_context = StorageContext.from_defaults(vector_store=vector_store)
-    return VectorStoreIndex.from_documents(documents, storage_context=storage_context)
+    return VectorStoreIndex.from_documents(documents, storage_context=storage_context, show_progress=True)
 
 # Endpoint for uploading files or directory path
 class DirectoryPathRequest(BaseModel):
@@ -89,7 +94,6 @@ async def websocket_chat(websocket: WebSocket):
         await websocket.send_json({"role":"assistant", "content":"Index not available. Please upload files first."})
         await websocket.close()
         return
-
     query_engine = index.as_chat_engine(similarity_top_k=20, streaming=True)
     history = []
     
