@@ -12,5 +12,10 @@ llama-index-vector-stores-milvus
 pymilvus
 python-pptx
 llama_index.vector_stores.chroma
-nemoguardrails
+langchain-nvidia-ai-endpoints
+langchain==0.2.17
+langchain_core==0.2.43
+langchain-community==0.2.18
+langchain-text-splitters==0.2.4
+nemoguardrails==0.10.1
 python-multipart

@@ -17,14 +17,19 @@ from llama_index.core.node_parser import (
     SentenceSplitter,
     SemanticSplitterNodeParser,
 )
+from nemoguardrails import LLMRails, RailsConfig
 from llama_index.core import PromptTemplate
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.chat_engine import CondenseQuestionChatEngine
 from utils import set_environment_variables
+import nest_asyncio
+nest_asyncio.apply()
 set_environment_variables()
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+config = RailsConfig.from_path('config')
+rails = LLMRails(config)
 
 # Initialize FastAPI
 app = FastAPI()
@@ -141,11 +146,31 @@ async def websocket_chat(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_json()
-            history.append(data)
+            input_rail = rails.generate(prompt=data["content"], options={
+                "rails": ["input"],
+                "log": {
+                    "activated_rails": True
+                }
+            })
+            if input_rail.response == data["content"]:
+                history.append(data)
+            else:
+                history.append({"role": "assistant", "content": input_rail.response})
+                await websocket.send_json({"role": "assistant", "content": input_rail.response})
+                continue
             response = chat_engine.chat(data["content"])
+            history.append({"role": "assistant", "content": str(response)})
             print(response)
-            await websocket.send_json({"role": "assistant", "content": str(response)})
-            history.append({"role": "assistant", "content": response})
+            output_rail = rails.generate(messages=history, options={
+                "rails": ["output"],
+                "log": {
+                    "activated_rails": True
+                }
+            })
+            if output_rail.response[0]["content"] == str(response):
+                await websocket.send_json({"role": "assistant", "content": str(response)})
+            else:
+                await websocket.send_json({"role": "assistant", "content": output_rail.response[0]["content"]})
             logger.info(f"User query processed: {data}")
 
     except Exception as e:
