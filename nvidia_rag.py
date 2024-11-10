@@ -138,7 +138,7 @@ async def websocket_chat(websocket: WebSocket):
         await websocket.send_json({"role":"assistant", "content":"Index not available. Please upload files first."})
         await websocket.close()
         return
-    query_engine = index.as_query_engine(similarity_top_k=20, node_postprocessors=[reranker])
+    query_engine = index.as_query_engine(similarity_top_k=20)
     chat_engine = CondenseQuestionChatEngine.from_defaults(
         query_engine=query_engine,
         condense_question_prompt=custom_prompt,
