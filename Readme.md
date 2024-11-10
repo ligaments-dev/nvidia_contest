@@ -35,6 +35,32 @@ To run this application locally, follow these steps:
 - Docker (for containerized deployment)
 - Python 3.11 or higher (for local development)
 
+## Configuration
+
+The application supports easy configuration of models and API endpoints through environment variables. Users can configure their preferred models for language generation, graph processing, and image processing by modifying the `.env` file.
+
+### Configuration File (`config.py`)
+
+In the `config.py` file, the application loads the necessary environment variables from the `.env` file. The key parameters are:
+
+- **LLM (Language Model):** Defines the language model to be used for natural language processing tasks. By default, it is set to `meta/llama-3.1-70b-instruct`.
+  
+- **GRAPH_MODEL:** Specifies the graph processing model. The default value is `google/deplot`.
+
+- **IMAGE_MODEL:** Configures the image processing model. The default value is `nvidia/neva-22b`.
+
+- **GRAPH_MODEL_API:** The API endpoint for the graph model.
+
+- **IMAGE_MODEL_API:** The API endpoint for the image model.
+
+You can modify these values by creating a `.env` file in the project root directory with the following entries:
+
+##### LLM=your-chosen-llm-model 
+##### GRAPH_MODEL=your-chosen-graph-model 
+##### IMAGE_MODEL=your-chosen-image-model 
+##### GRAPH_MODEL_API=https://your-graph-model-api-endpoint 
+##### IMAGE_MODEL_API=https://your-image-model-api-endpoint
+
 ### Setup with Docker
 1. Clone this repository:
     ```bash
