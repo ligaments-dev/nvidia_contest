@@ -22,9 +22,12 @@ from llama_index.core import PromptTemplate
 from llama_index.core.llms import ChatMessage, MessageRole
 from llama_index.core.chat_engine import CondenseQuestionChatEngine
 from utils import set_environment_variables
+from config import LLM_CONFIG
 import nest_asyncio
+
 nest_asyncio.apply()
 set_environment_variables()
+
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -45,13 +48,14 @@ app.add_middleware(
 
 # Initialize settings
 def initialize_settings():
-    Settings.embed_model = NVIDIAEmbedding(model="nvidia/nv-embedqa-e5-v5", truncate="END")
-    Settings.llm = NVIDIA(model="meta/llama-3.1-70b-instruct")
+    Settings.embed_model = NVIDIAEmbedding(model=LLM_CONFIG["embed_model"], truncate="END")
+    Settings.llm = NVIDIA(model=LLM_CONFIG["llm"])
     Settings.text_splitter = SentenceSplitter(chunk_size=600)
     Settings.node_parser = SemanticSplitterNodeParser(buffer_size=1, embed_model=Settings.embed_model)
     logger.info("Settings initialized.")
 
 initialize_settings()
+
 
 # Chroma vector store client setup
 chroma_client = chromadb.PersistentClient(path="./chroma_db")
