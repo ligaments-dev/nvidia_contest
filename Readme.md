@@ -56,6 +56,7 @@ In the `config.py` file, the application loads the necessary environment variabl
 You can modify these values by creating a `.env` file in the project root directory with the following entries:
 
 ##### LLM=your-chosen-llm-model 
+##### EMBED_MODEL=your-chosen-embedding-model
 ##### GRAPH_MODEL=your-chosen-graph-model 
 ##### IMAGE_MODEL=your-chosen-image-model 
 ##### GRAPH_MODEL_API=https://your-graph-model-api-endpoint 
