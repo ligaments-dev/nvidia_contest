@@ -20,9 +20,9 @@ export function Dashboard() {
     []
   );
   const [inputMessage, setInputMessage] = useState("");
-  const [rows, setRows] = useState(2);
+  const [rows, setRows] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFileUploaded, setIsFileUploaded] = useState(false); // New state
+  // const [isFileUploaded, setIsFileUploaded] = useState(false); // New state
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [ws, setWs] = useState<WebSocket | null>(null);
 
@@ -34,7 +34,7 @@ export function Dashboard() {
   useEffect(scrollToBottom, [messages]);
 
   // Initialize WebSocket connection after file upload
-  const initializeWebSocket = () => {
+  useEffect(() => {
     const websocket = new WebSocket("ws://localhost:8697/chat");
     setWs(websocket);
 
@@ -53,7 +53,14 @@ export function Dashboard() {
 
     websocket.onerror = (error) => {
       console.error("WebSocket error:", error);
-      message.error("WebSocket connection error. Please try again later.");
+      // message.error("WebSocket connection error. Please try again later.");
+      setMessages([
+        ...messages,
+        {
+          role: "assistant",
+          content: "Connection error. Please try again later.",
+        },
+      ]);
       setIsLoading(false);
     };
 
@@ -64,20 +71,10 @@ export function Dashboard() {
     return () => {
       websocket.close();
     };
-  };
+  }, []);
 
   // Handle sending a message
   const handleSendMessage = () => {
-    if (!isFileUploaded) {
-      setMessages([
-        ...messages,
-        { role: "assistant", content: "Please upload your file to proceed" },
-      ]);
-      setShowConversation(true);
-      setRows(1);
-      return;
-    }
-
     if (inputMessage.trim() && ws) {
       const userMessage = {
         role: "user",
@@ -87,11 +84,36 @@ export function Dashboard() {
       setInputMessage("");
       setShowConversation(true);
       setRows(1);
-      setIsLoading(true);
 
       ws.send(JSON.stringify(userMessage));
     }
   };
+
+  // const handleSendMessage = () => {
+  //   // if (!isFileUploaded) {
+  //   //   setMessages([
+  //   //     ...messages,
+  //   //     { role: "assistant", content: "Please upload your file to proceed" },
+  //   //   ]);
+  //   //   setShowConversation(true);
+  //   //   setRows(1);
+  //   //   return;
+  //   // }
+
+  //   if (inputMessage.trim() && ws) {
+  //     const userMessage = {
+  //       role: "user",
+  //       content: inputMessage.replace(/\n/g, "  \n"),
+  //     };
+  //     setMessages([...messages, userMessage]);
+  //     setInputMessage("");
+  //     setShowConversation(true);
+  //     setRows(1);
+  //     setIsLoading(true);
+
+  //     ws.send(JSON.stringify(userMessage));
+  //   }
+  // };
 
   const resetChat = () => {
     setMessages([]);
@@ -107,10 +129,10 @@ export function Dashboard() {
       const { status } = info.file;
       if (status === "done") {
         message.success(`${info.file.name} file uploaded successfully.`);
-        setIsFileUploaded(true);
-        if (!ws) {
-          initializeWebSocket(); // Initialize WebSocket after file upload
-        }
+        // setIsFileUploaded(true);
+        // if (!ws) {
+        //   initializeWebSocket(); // Initialize WebSocket after file upload
+        // }
       } else if (status === "error") {
         message.error(`${info.file.name} file upload failed.`);
       }
